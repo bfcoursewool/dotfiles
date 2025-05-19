@@ -37,11 +37,12 @@
   "plenary.nvim": { "branch": "master", "commit": "857c5ac632080dba10aae49dba902ce3abf91b35" },
   "rainbow-delimiters.nvim": { "branch": "master", "commit": "55ad4fb76ab68460f700599b7449385f0c4e858e" },
   "render-markdown.nvim": { "branch": "main", "commit": "a1b0988f5ab26698afb56b9c2f0525a4de1195c1" },
-  "snacks-gitbrowse": { "branch": "main", "commit": "bc0630e43be5699bb94dadc302c0d21615421d93" },
+  "snacks.nvim": { "branch": "main", "commit": "bc0630e43be5699bb94dadc302c0d21615421d93" },
   "substrata.nvim": { "branch": "main", "commit": "e3b2b69ce597e8d17767a41d8db45b15178a0b45" },
   "telescope.nvim": { "branch": "master", "commit": "b4da76be54691e854d3e0e02c36b0245f945c2c7" },
   "tokyonight.nvim": { "branch": "main", "commit": "057ef5d260c1931f1dffd0f052c685dcd14100a3" },
   "undotree": { "branch": "master", "commit": "b951b87b46c34356d44aa71886aecf9dd7f5788a" },
+  "vim-be-good": { "branch": "master", "commit": "0ae3de14eb8efc6effe7704b5e46495e91931cc5" },
   "vim-gnupg": { "branch": "main", "commit": "f9b608f29003dfde6450931dc0f495a912973a88" },
   "vim-prettier": { "branch": "master", "commit": "7dbdbb12c50a9f4ba72390cce2846248e4368fd0" },
   "vscode.nvim": { "branch": "main", "commit": "57cec1509bfb57dfc3c4d5ba5e8db9a5b5e42be2" }

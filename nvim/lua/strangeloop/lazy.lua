@@ -15,127 +15,19 @@ function fetch_random_header()
   return strings[random_index]
 end
 
--- The config function for treesitter-textobjects that creates my fancy schmancy syntax aware
--- textobjects like assignment statements, conditionals, etc.
-function configure_treesitter_textobjects()
-  require("nvim-treesitter.configs").setup({
-    textobjects = {
-
-      select = {
-        enable = true,
-        -- Automatically jump forward to textobj, similar to targets.vim
-        lookahead = true,
-        keymaps = {
-          -- You can use the capture groups defined in textobjects.scm
-          ["a="] = { query = "@assignment.outer", desc = "Select outer part of an assignment" },
-          ["i="] = { query = "@assignment.inner", desc = "Select inner part of an assignment" },
-          ["l="] = { query = "@assignment.lhs", desc = "Select left hand side of an assignment" },
-          ["r="] = { query = "@assignment.rhs", desc = "Select right hand side of an assignment" },
-
-          ["aa"] = { query = "@parameter.outer", desc = "Select outer part of a parameter/argument" },
-          ["ia"] = { query = "@parameter.inner", desc = "Select inner part of a parameter/argument" },
-
-          ["ai"] = { query = "@conditional.outer", desc = "Select outer part of a conditional" },
-          ["ii"] = { query = "@conditional.inner", desc = "Select inner part of a conditional" },
-
-          ["al"] = { query = "@loop.outer", desc = "Select outer part of a loop" },
-          ["il"] = { query = "@loop.inner", desc = "Select inner part of a loop" },
-
-          ["af"] = { query = "@call.outer", desc = "Select outer part of a function call" },
-          ["if"] = { query = "@call.inner", desc = "Select inner part of a function call" },
-
-          ["am"] = { query = "@function.outer", desc = "Select outer part of a method/function definition" },
-          ["im"] = { query = "@function.inner", desc = "Select inner part of a method/function definition" },
-
-          ["ac"] = { query = "@class.outer", desc = "Select outer part of a class" },
-          ["ic"] = { query = "@class.inner", desc = "Select inner part of a class" },
-        },
-      },
-
-      move = {
-        enable = true,
-        set_jumps = true, -- whether to set jumps in the jumplist
-        goto_next_start = {
-          ["]f"] = { query = "@call.outer", desc = "Next function call start" },
-          ["]m"] = { query = "@function.outer", desc = "Next method/function def start" },
-          ["]c"] = { query = "@class.outer", desc = "Next class start" },
-          ["]i"] = { query = "@conditional.outer", desc = "Next conditional start" },
-          ["]l"] = { query = "@loop.outer", desc = "Next loop start" },
-          ["]="] = { query = "@assignment.outer", desc = "Next assignment start" },
-
-          -- You can pass a query group to use query from `queries/<lang>/<query_group>.scm file in your runtime path.
-          -- Below example nvim-treesitter's `locals.scm` and `folds.scm`. They also provide highlights.scm and indent.scm.
-          ["]s"] = { query = "@scope", query_group = "locals", desc = "Next scope" },
-          ["]z"] = { query = "@fold", query_group = "folds", desc = "Next fold" },
-        },
-        goto_next_end = {
-          ["]F"] = { query = "@call.outer", desc = "Next function call end" },
-          ["]M"] = { query = "@function.outer", desc = "Next method/function def end" },
-          ["]C"] = { query = "@class.outer", desc = "Next class end" },
-          ["]I"] = { query = "@conditional.outer", desc = "Next conditional end" },
-          ["]L"] = { query = "@loop.outer", desc = "Next loop end" },
-        },
-        goto_previous_start = {
-          ["[f"] = { query = "@call.outer", desc = "Prev function call start" },
-          ["[m"] = { query = "@function.outer", desc = "Prev method/function def start" },
-          -- This one conflicts with a remap that takes me to the containing context, and since I don't currently
-          -- work with a lot of code that uses classes, I'm choosing to sacrifice this previous class motion so I can
-          -- hold onto the "go to context" motion I already have an am used to.
-          -- ["[c"] = { query = "@class.outer", desc = "Prev class start" },
-          ["[i"] = { query = "@conditional.outer", desc = "Prev conditional start" },
-          ["[l"] = { query = "@loop.outer", desc = "Prev loop start" },
-          ["[="] = { query = "@assignment.outer", desc = "Previous assignment start" },
-        },
-        goto_previous_end = {
-          ["[F"] = { query = "@call.outer", desc = "Prev function call end" },
-          ["[M"] = { query = "@function.outer", desc = "Prev method/function def end" },
-          ["[C"] = { query = "@class.outer", desc = "Prev class end" },
-          ["[I"] = { query = "@conditional.outer", desc = "Prev conditional end" },
-          ["[L"] = { query = "@loop.outer", desc = "Prev loop end" },
-        },
-      },
-    },
-  })
-
-  local ts_repeat_move = require("nvim-treesitter.textobjects.repeatable_move")
-
-  local function repeat_and_center(forward)
-    return function()
-      local ok = forward and ts_repeat_move.repeat_last_move()
-      or ts_repeat_move.repeat_last_move_opposite()
-      if ok then                      -- only center if we really jumped
-        vim.cmd("normal! zz")
-      end
-    end
-  end
-
-  vim.keymap.set({ "n", "x", "o" }, "'", repeat_and_center(true),
-    { silent = true, desc = "repeat TS move forward + zz" })
-
-  vim.keymap.set({ "n", "x", "o" }, '"', repeat_and_center(false),
-    { silent = true, desc = "repeat TS move backward + zz" })
-end
-
 require('lazy').setup({
   checker = {
     enabled = true
   },
-
-  {
-    "rcarriga/nvim-notify",
-    lazy = true,                    -- keep it lazy; this is just to set opts
-    opts = {
-      background_colour = "#750154" -- or any hex that matches your theme
-    },
-  },
-
-  -- Snacks is a snazzy new set of plugins from folke. This sets up a sick dashboard.
+  -- Snacks is a snazzy new set of plugins from folke. This sets up a sick dashboard
+  -- and also turns on/configures the notifier, though I'm not honestly sure how exactly 
+  -- to make the best use of it just yet.
   {
     "folke/snacks.nvim",
-    name  = "snacks-dashboard",          -- give each spec a unique name
-    event = "UIEnter",                   -- very first moment a screen exists
-    version = false,                     -- track main branch
+    priority = 1000,
+    lazy = false,
     opts = {
+
       -- Dashboard stuff... shortcut functions, recent projects, recent files, open PRs
       dashboard = {
         width = 100,
@@ -194,75 +86,50 @@ require('lazy').setup({
           { text = '', action = ':qa', key = 'q' },
         },
       },
-      -- disable heavy parts for now
-      notifier = false,
-      lazygit  = false,
-      gitbrowse = false,
-    },
-  },
 
-  {
-    "folke/snacks.nvim",
-    name = "snacks-notifier",
-    lazy = true,
-    opts = function()
-      return {
-        -- Notifier settings. There's an autocommand set up which links the LSP loading state info to the notifier as well.
-        notify = { enabled = true },
-        notifier = {
-          timeout = 3000, -- default timeout in ms
-          width = { min = 40, max = 0.4 },
-          height = { min = 1, max = 0.6 },
-          -- editor margin to keep free. tabline and statusline are taken into account automatically
-          margin = { top = 0, right = 1, bottom = 0 },
-          padding = true, -- add 1 cell of left/right padding to the notification window
-          sort = { "level", "added" }, -- sort by level and time
-          -- minimum log level to display. TRACE is the lowest
-          -- all notifications are stored in history
-          level = vim.log.levels.TRACE,
-          icons = {
-            error = " ",
-            warn = " ",
-            info = " ",
-            debug = " ",
-            trace = " ",
-          },
-          keep = function(notif)
-            return vim.fn.getcmdpos() > 0
-          end,
-          ---@type snacks.notifier.style
-          style = "compact",
-          top_down = true, -- place notifications from top to bottom
-          date_format = "%R", -- time format for notifications
-          -- format for footer when more lines are available
-          -- `%d` is replaced with the number of lines.
-          -- only works for styles with a border
-          ---@type string|boolean
-          more_format = " ↓ %d lines ",
-          refresh = 50, -- refresh at most every 50ms
+      -- Notifier settings. There's an autocommand set up which links the LSP loading state info to the notifier as well.
+      notify = { enabled = true },
+      notifier = {
+        timeout = 3000, -- default timeout in ms
+        width = { min = 40, max = 0.4 },
+        height = { min = 1, max = 0.6 },
+        -- editor margin to keep free. tabline and statusline are taken into account automatically
+        margin = { top = 0, right = 1, bottom = 0 },
+        padding = true, -- add 1 cell of left/right padding to the notification window
+        sort = { "level", "added" }, -- sort by level and time
+        -- minimum log level to display. TRACE is the lowest
+        -- all notifications are stored in history
+        level = vim.log.levels.TRACE,
+        icons = {
+          error = " ",
+          warn = " ",
+          info = " ",
+          debug = " ",
+          trace = " ",
         },
-      }
-    end,
-    init = function()
-      -- monkey‑patch vim.notify so *first* notice pulls in the module
-      local lazy_notify = function(...)
-        require("lazy.core.loader").load({ "snacks-notifier" })
-        return vim.notify(...)
-      end
-      vim.notify = lazy_notify
-    end,
-  },
+        keep = function(notif)
+          return vim.fn.getcmdpos() > 0
+        end,
+        ---@type snacks.notifier.style
+        style = "compact",
+        top_down = true, -- place notifications from top to bottom
+        date_format = "%R", -- time format for notifications
+        -- format for footer when more lines are available
+        -- %d is replaced with the number of lines.
+        -- only works for styles with a border
+        ---@type string|boolean
+        more_format = " ↓ %d lines ",
+        refresh = 50, -- refresh at most every 50ms
+      },
 
-  {
-    "folke/snacks.nvim",
-    name = "snacks-lazygit",
-    cmd  = "LazyGitFloat",               -- create a user command
-    opts = {
-      lazygit   = {
+      -- lazygit integration is dope. 
+      lazygit = {
+        -- automatically configure lazygit to use the current colorscheme
+        -- and integrate edit with the current neovim instance
         configure = true,
         -- extra configuration for lazygit that will be merged with the default
-        -- snacks does NOT have a full yaml parser, so if you need `"test"` to appear with the quotes
-        -- you need to double quote it: `"\"test\""`
+        -- snacks does NOT have a full yaml parser, so if you need "test" to appear with the quotes
+        -- you need to double quote it: "\"test\""
         config = {
           os = { editPreset = "nvim-remote" },
           gui = {
@@ -281,28 +148,16 @@ require('lazy').setup({
           inactiveBorderColor        = { fg = "FloatBorder" },
           optionsTextColor           = { fg = "Function" },
           searchingActiveBorderColor = { fg = "MatchParen", bold = true },
-          selectedLineBgColor        = { bg = "Visual" }, -- set to `default` to have no background colour
+          selectedLineBgColor        = { bg = "Visual" }, -- set to default to have no background colour
           unstagedChangesColor       = { fg = "DiagnosticError" },
         },
         win = {
           style = "lazygit",
         },
       },
-    },
-    config = function(_, opts)
-      vim.api.nvim_create_user_command("LazyGitFloat", function()
-        -- real load happens the first time you run the command
-        require("lazy.core.loader").load({ "snacks-lazygit" })
-        require("snacks").lazygit.toggle()
-      end, {})
-    end,
-  },
 
-  {
-    "folke/snacks.nvim",
-    name = "snacks-gitbrowse",
-    keys = { { "<leader>go", desc = "Open repo in browser" } },
-    opts = {
+      -- This is what makes <leader>go work in nvim. Lets you open the file you're looking at in nvim, but in a browser,
+      -- using whatever git hosting service your repo uses (ie, github, gitlab, bitbucket).
       gitbrowse = {
         ---@class snacks.gitbrowse.Config
         ---@field url_patterns? table<string, table<string, string|fun(fields:snacks.gitbrowse.Fields):string>>
@@ -354,13 +209,7 @@ require('lazy').setup({
           },
         },
       },
-    },
-    config = function(_, opts)
-      vim.keymap.set("n", "<leader>go", function()
-        require("lazy.core.loader").load({ "snacks-gitbrowse" })
-        require("snacks").gitbrowse()
-      end)
-    end,
+    }
   },
 
   -- gnupg integration for when you need to do s00per s3kr37 stuff.
@@ -369,11 +218,6 @@ require('lazy').setup({
   -- A really versatile fuzzy finder that has lots of neat builtin functions
   {
     'nvim-telescope/telescope.nvim',
-    cmd = "Telescope",
-    keys = {
-      { "<leader>pf", "<cmd>Telescope find_files<cr>", desc = "Find files" },
-      { "<leader>pg", "<cmd>Telescope live_grep<cr>", desc = "Live grep" },
-    },
     dependencies = { 'nvim-lua/plenary.nvim' }
   },
 
@@ -392,7 +236,6 @@ require('lazy').setup({
   -- into a single search interface.
   {
     'ggandor/leap.nvim',
-    event = 'VeryLazy',
     config = function()
       local leap = require('leap')
       leap.add_default_mappings()
@@ -405,7 +248,6 @@ require('lazy').setup({
   -- line. Pretty nifty.
   {
     'jinh0/eyeliner.nvim',
-    event = 'VeryLazy',
     config = function()
       require'eyeliner'.setup {
         -- show highlights only after keypress
@@ -438,21 +280,124 @@ require('lazy').setup({
   -- Treesitter stuff... this gives us syntax highlighting and some fancy custom
   -- text objects. There's a treesitter.lua file in the plugins "after" directory
   -- that has additional configs to be aware of. 
+  'nvim-treesitter/nvim-treesitter-context',
   { 
   	'nvim-treesitter/nvim-treesitter', 
     dependencies = {
-      { 'nvim-treesitter/nvim-treesitter-textobjects', lazy = true, config = configure_treesitter_textobjects },
-      { 'nvim-treesitter/nvim-treesitter-context', lazy = true, event = { 'BufReadPre', 'BufNewFile' } },
-      { 'nvim-treesitter/playground', lazy = true, event = { 'BufReadPre', 'BufNewFile' } }
+      "nvim-treesitter/nvim-treesitter-textobjects",
     },
   	config = function ()
-  		require 'nvim-treesitter.install'.compilers = { 'clang' }
+  		require 'nvim-treesitter.install'.compilers = { "clang" }
   	end,
     opts = {
       auto_install = true
     },
-	  build = ':TSUpdate',
-    event = { 'BufReadPre', 'BufNewFile' },
+	  build = ":TSUpdate",
+    event = { "BufReadPre", "BufNewFile" },
+  },
+  'nvim-treesitter/playground',
+
+  {
+    "nvim-treesitter/nvim-treesitter-textobjects",
+    lazy = true,
+    config = function()
+      require("nvim-treesitter.configs").setup({
+        textobjects = {
+
+          select = {
+            enable = true,
+            -- Automatically jump forward to textobj, similar to targets.vim
+            lookahead = true,
+            keymaps = {
+              -- You can use the capture groups defined in textobjects.scm
+              ["a="] = { query = "@assignment.outer", desc = "Select outer part of an assignment" },
+              ["i="] = { query = "@assignment.inner", desc = "Select inner part of an assignment" },
+              ["l="] = { query = "@assignment.lhs", desc = "Select left hand side of an assignment" },
+              ["r="] = { query = "@assignment.rhs", desc = "Select right hand side of an assignment" },
+
+              ["aa"] = { query = "@parameter.outer", desc = "Select outer part of a parameter/argument" },
+              ["ia"] = { query = "@parameter.inner", desc = "Select inner part of a parameter/argument" },
+
+              ["ai"] = { query = "@conditional.outer", desc = "Select outer part of a conditional" },
+              ["ii"] = { query = "@conditional.inner", desc = "Select inner part of a conditional" },
+
+              ["al"] = { query = "@loop.outer", desc = "Select outer part of a loop" },
+              ["il"] = { query = "@loop.inner", desc = "Select inner part of a loop" },
+
+              ["af"] = { query = "@call.outer", desc = "Select outer part of a function call" },
+              ["if"] = { query = "@call.inner", desc = "Select inner part of a function call" },
+
+              ["am"] = { query = "@function.outer", desc = "Select outer part of a method/function definition" },
+              ["im"] = { query = "@function.inner", desc = "Select inner part of a method/function definition" },
+
+              ["ac"] = { query = "@class.outer", desc = "Select outer part of a class" },
+              ["ic"] = { query = "@class.inner", desc = "Select inner part of a class" },
+            },
+          },
+
+          move = {
+            enable = true,
+            set_jumps = true, -- whether to set jumps in the jumplist
+            goto_next_start = {
+              ["]f"] = { query = "@call.outer", desc = "Next function call start" },
+              ["]m"] = { query = "@function.outer", desc = "Next method/function def start" },
+              ["]c"] = { query = "@class.outer", desc = "Next class start" },
+              ["]i"] = { query = "@conditional.outer", desc = "Next conditional start" },
+              ["]l"] = { query = "@loop.outer", desc = "Next loop start" },
+              ["]="] = { query = "@assignment.outer", desc = "Next assignment start" },
+
+              -- You can pass a query group to use query from queries/<lang>/<query_group>.scm file in your runtime path.
+              -- Below example nvim-treesitter's locals.scm and folds.scm. They also provide highlights.scm and indent.scm.
+              ["]s"] = { query = "@scope", query_group = "locals", desc = "Next scope" },
+              ["]z"] = { query = "@fold", query_group = "folds", desc = "Next fold" },
+            },
+            goto_next_end = {
+              ["]F"] = { query = "@call.outer", desc = "Next function call end" },
+              ["]M"] = { query = "@function.outer", desc = "Next method/function def end" },
+              ["]C"] = { query = "@class.outer", desc = "Next class end" },
+              ["]I"] = { query = "@conditional.outer", desc = "Next conditional end" },
+              ["]L"] = { query = "@loop.outer", desc = "Next loop end" },
+            },
+            goto_previous_start = {
+              ["[f"] = { query = "@call.outer", desc = "Prev function call start" },
+              ["[m"] = { query = "@function.outer", desc = "Prev method/function def start" },
+              -- This one conflicts with a remap that takes me to the containing context, and since I don't currently
+              -- work with a lot of code that uses classes, I'm choosing to sacrifice this previous class motion so I can
+              -- hold onto the "go to context" motion I already have an am used to.
+              -- ["[c"] = { query = "@class.outer", desc = "Prev class start" },
+              ["[i"] = { query = "@conditional.outer", desc = "Prev conditional start" },
+              ["[l"] = { query = "@loop.outer", desc = "Prev loop start" },
+              ["[="] = { query = "@assignment.outer", desc = "Previous assignment start" },
+            },
+            goto_previous_end = {
+              ["[F"] = { query = "@call.outer", desc = "Prev function call end" },
+              ["[M"] = { query = "@function.outer", desc = "Prev method/function def end" },
+              ["[C"] = { query = "@class.outer", desc = "Prev class end" },
+              ["[I"] = { query = "@conditional.outer", desc = "Prev conditional end" },
+              ["[L"] = { query = "@loop.outer", desc = "Prev loop end" },
+            },
+          },
+        },
+      })
+
+      local ts_repeat_move = require("nvim-treesitter.textobjects.repeatable_move")
+
+      local function repeat_and_center(forward)
+        return function()
+          local ok = forward and ts_repeat_move.repeat_last_move()
+          or ts_repeat_move.repeat_last_move_opposite()
+          if ok then                      -- only center if we really jumped
+            vim.cmd("normal! zz")
+          end
+        end
+      end
+
+      vim.keymap.set({ "n", "x", "o" }, "'", repeat_and_center(true),
+        { silent = true, desc = "repeat TS move forward + zz" })
+
+      vim.keymap.set({ "n", "x", "o" }, '"', repeat_and_center(false),
+        { silent = true, desc = "repeat TS move backward + zz" })
+    end
   },
 
   {
@@ -463,7 +408,7 @@ require('lazy').setup({
     build = "make install_jsregexp"
   },
 
-  { 'HiPhish/rainbow-delimiters.nvim', event={"BufReadPre","BufNewFile"} },
+  'HiPhish/rainbow-delimiters.nvim',
 
   -- A UI Component library for nvim, used by noice.nvim
   'MunifTanjim/nui.nvim',
@@ -476,11 +421,11 @@ require('lazy').setup({
       -- add any options here
     },
     dependencies = {
-      -- if you lazy-load any plugin below, make sure to add proper `module="..."` entries
+      -- if you lazy-load any plugin below, make sure to add proper module="..." entries
       "MunifTanjim/nui.nvim",
       -- OPTIONAL:
-      --   `nvim-notify` is only needed, if you want to use the notification view.
-      --   If not available, we use `mini` as the fallback
+      --   nvim-notify is only needed, if you want to use the notification view.
+      --   If not available, we use mini as the fallback
       "rcarriga/nvim-notify",
     }
   },
@@ -523,7 +468,6 @@ require('lazy').setup({
   {
     "utilyre/barbecue.nvim",
     branch = "main",
-    event = {"BufReadPre","BufNewFile"},
     name = "barbecue",
     -- version = "*",
     dependencies = {
@@ -538,7 +482,6 @@ require('lazy').setup({
   -- Trying out a statusline plugin...
   {
     'nvim-lualine/lualine.nvim',
-    event = "VeryLazy",
     dependencies = { 'nvim-tree/nvim-web-devicons' }
   },
 
@@ -552,7 +495,6 @@ require('lazy').setup({
   -- Get this: it's an undo tree.
   {
     'mbbill/undotree',
-    cmd="UndotreeToggle",
   },
 
   -- Language Server Protocol client! All kinds of wizardry available from this sucker. 
@@ -605,7 +547,6 @@ require('lazy').setup({
   -- Markdown renderer... nice. 
   {
     'MeanderingProgrammer/render-markdown.nvim',
-    ft = { "markdown" },
     dependencies = { 
       { 'nvim-tree/nvim-web-devicons', opt = true }, -- if you prefer nvim-web-devicons
       { 'nvim-treesitter' }
@@ -622,7 +563,7 @@ require('lazy').setup({
   -- },
 
   -- Fancy icons! Gotta have a NerdFont installed for this one to work. 
-  { 'nvim-tree/nvim-web-devicons', lazy = true },
+  'nvim-tree/nvim-web-devicons',
 
   -- Buncha different colorschemes I tried out. 
   -- I don't think I actually need all these installed though, given telescope has a "colorscheme" builtin,
