@@ -125,7 +125,7 @@ require('lazy').setup({
     "rcarriga/nvim-notify",
     lazy = true,                    -- keep it lazy; this is just to set opts
     opts = {
-      background_colour = "#750154" -- or any hex that matches your theme
+      background_colour = "#750154"
     },
   },
 
@@ -134,10 +134,14 @@ require('lazy').setup({
     "folke/snacks.nvim",
     name  = "snacks-dashboard",          -- give each spec a unique name
     event = "UIEnter",                   -- very first moment a screen exists
+    dependencies = {            -- ⬅️  make sure Nui is there first
+      { "MunifTanjim/nui.nvim", lazy = false },
+    },
     version = false,                     -- track main branch
     opts = {
       -- Dashboard stuff... shortcut functions, recent projects, recent files, open PRs
       dashboard = {
+        lazy = false,
         width = 100,
         sections = {
           {
@@ -199,16 +203,23 @@ require('lazy').setup({
       lazygit  = false,
       gitbrowse = false,
     },
+    config = function(_, opts)
+      local snacks = require("snacks")
+      snacks.setup(opts)                 -- apply the options
+
+      -- open the dashboard if Neovim started with no file arguments
+      if vim.fn.argc() == 0 then
+        vim.schedule(function() snacks.dashboard() end)
+      end
+    end,
   },
 
   {
     "folke/snacks.nvim",
     name = "snacks-notifier",
     lazy = true,
-    opts = function()
-      return {
-        -- Notifier settings. There's an autocommand set up which links the LSP loading state info to the notifier as well.
-        notify = { enabled = true },
+    opts = function(_, old_opts)
+      return vim.tbl_deep_extend("force", old_opts, {
         notifier = {
           timeout = 3000, -- default timeout in ms
           width = { min = 40, max = 0.4 },
@@ -241,7 +252,8 @@ require('lazy').setup({
           more_format = " ↓ %d lines ",
           refresh = 50, -- refresh at most every 50ms
         },
-      }
+        notify = { enabled = true },
+      })
     end,
     init = function()
       -- monkey‑patch vim.notify so *first* notice pulls in the module
@@ -257,38 +269,40 @@ require('lazy').setup({
     "folke/snacks.nvim",
     name = "snacks-lazygit",
     cmd  = "LazyGitFloat",               -- create a user command
-    opts = {
-      lazygit   = {
-        configure = true,
-        -- extra configuration for lazygit that will be merged with the default
-        -- snacks does NOT have a full yaml parser, so if you need `"test"` to appear with the quotes
-        -- you need to double quote it: `"\"test\""`
-        config = {
-          os = { editPreset = "nvim-remote" },
-          gui = {
-            -- set to an empty string "" to disable icons
-            nerdFontsVersion = "3",
+    opts = function(_, old_opts)
+      return vim.tbl_deep_extend("force", old_opts, {
+        lazygit = {
+          configure = true,
+          -- extra configuration for lazygit that will be merged with the default
+          -- snacks does NOT have a full yaml parser, so if you need `"test"` to appear with the quotes
+          -- you need to double quote it: `"\"test\""`
+          config = {
+            os = { editPreset = "nvim-remote" },
+            gui = {
+              -- set to an empty string "" to disable icons
+              nerdFontsVersion = "3",
+            },
           },
-        },
-        theme_path = vim.fs.normalize(vim.fn.stdpath("cache") .. "/lazygit-theme.yml"),
-        -- Theme for lazygit
-        theme = {
-          [241]                      = { fg = "Special" },
-          activeBorderColor          = { fg = "MatchParen", bold = true },
-          cherryPickedCommitBgColor  = { fg = "Identifier" },
-          cherryPickedCommitFgColor  = { fg = "Function" },
-          defaultFgColor             = { fg = "Normal" },
-          inactiveBorderColor        = { fg = "FloatBorder" },
-          optionsTextColor           = { fg = "Function" },
-          searchingActiveBorderColor = { fg = "MatchParen", bold = true },
-          selectedLineBgColor        = { bg = "Visual" }, -- set to `default` to have no background colour
-          unstagedChangesColor       = { fg = "DiagnosticError" },
-        },
-        win = {
-          style = "lazygit",
-        },
-      },
-    },
+          theme_path = vim.fs.normalize(vim.fn.stdpath("cache") .. "/lazygit-theme.yml"),
+          -- Theme for lazygit
+          theme = {
+            [241]                      = { fg = "Special" },
+            activeBorderColor          = { fg = "MatchParen", bold = true },
+            cherryPickedCommitBgColor  = { fg = "Identifier" },
+            cherryPickedCommitFgColor  = { fg = "Function" },
+            defaultFgColor             = { fg = "Normal" },
+            inactiveBorderColor        = { fg = "FloatBorder" },
+            optionsTextColor           = { fg = "Function" },
+            searchingActiveBorderColor = { fg = "MatchParen", bold = true },
+            selectedLineBgColor        = { bg = "Visual" }, -- set to `default` to have no background colour
+            unstagedChangesColor       = { fg = "DiagnosticError" },
+          },
+          win = {
+            style = "lazygit",
+          },
+        }
+      })
+    end,
     config = function(_, opts)
       vim.api.nvim_create_user_command("LazyGitFloat", function()
         -- real load happens the first time you run the command
@@ -302,59 +316,61 @@ require('lazy').setup({
     "folke/snacks.nvim",
     name = "snacks-gitbrowse",
     keys = { { "<leader>go", desc = "Open repo in browser" } },
-    opts = {
-      gitbrowse = {
-        ---@class snacks.gitbrowse.Config
-        ---@field url_patterns? table<string, table<string, string|fun(fields:snacks.gitbrowse.Fields):string>>
-        notify = true, -- show notification on open
-        -- Handler to open the url in a browser
-        ---@param url string
-        open = function(url)
-          if vim.fn.has("nvim-0.10") == 0 then
-            require("lazy.util").open(url, { system = true })
-            return
-          end
-          vim.ui.open(url)
-        end,
-        ---@type "repo" | "branch" | "file" | "commit"
-        what = "file", -- what to open. not all remotes support all types
-        branch = nil, ---@type string?
-        line_start = nil, ---@type number?
-        line_end = nil, ---@type number?
-        -- patterns to transform remotes to an actual URL
-        remote_patterns = {
-          { "^(https?://.*)%.git$"              , "%1" },
-          { "^git@(.+):(.+)%.git$"              , "https://%1/%2" },
-          { "^git@(.+):(.+)$"                   , "https://%1/%2" },
-          { "^git@(.+)/(.+)$"                   , "https://%1/%2" },
-          { "^ssh://git@(.*)$"                  , "https://%1" },
-          { "^ssh://([^:/]+)(:%d+)/(.*)$"       , "https://%1/%3" },
-          { "^ssh://([^/]+)/(.*)$"              , "https://%1/%2" },
-          { "ssh%.dev%.azure%.com/v3/(.*)/(.*)$", "dev.azure.com/%1/_git/%2" },
-          { "^https://%w*@(.*)"                 , "https://%1" },
-          { "^git@(.*)"                         , "https://%1" },
-          { ":%d+"                              , "" },
-          { "%.git$"                            , "" },
-        },
-        url_patterns = {
-          ["github%.com"] = {
-            branch = "/tree/{branch}",
-            file = "/blob/{branch}/{file}#L{line_start}-L{line_end}",
-            commit = "/commit/{commit}",
+    opts = function(_, old_opts)
+      return vim.tbl_deep_extend("force", old_opts, {
+        gitbrowse = {
+          ---@class snacks.gitbrowse.Config
+          ---@field url_patterns? table<string, table<string, string|fun(fields:snacks.gitbrowse.Fields):string>>
+          notify = true, -- show notification on open
+          -- Handler to open the url in a browser
+          ---@param url string
+          open = function(url)
+            if vim.fn.has("nvim-0.10") == 0 then
+              require("lazy.util").open(url, { system = true })
+              return
+            end
+            vim.ui.open(url)
+          end,
+          ---@type "repo" | "branch" | "file" | "commit"
+          what = "file", -- what to open. not all remotes support all types
+          branch = nil, ---@type string?
+          line_start = nil, ---@type number?
+          line_end = nil, ---@type number?
+          -- patterns to transform remotes to an actual URL
+          remote_patterns = {
+            { "^(https?://.*)%.git$"              , "%1" },
+            { "^git@(.+):(.+)%.git$"              , "https://%1/%2" },
+            { "^git@(.+):(.+)$"                   , "https://%1/%2" },
+            { "^git@(.+)/(.+)$"                   , "https://%1/%2" },
+            { "^ssh://git@(.*)$"                  , "https://%1" },
+            { "^ssh://([^:/]+)(:%d+)/(.*)$"       , "https://%1/%3" },
+            { "^ssh://([^/]+)/(.*)$"              , "https://%1/%2" },
+            { "ssh%.dev%.azure%.com/v3/(.*)/(.*)$", "dev.azure.com/%1/_git/%2" },
+            { "^https://%w*@(.*)"                 , "https://%1" },
+            { "^git@(.*)"                         , "https://%1" },
+            { ":%d+"                              , "" },
+            { "%.git$"                            , "" },
           },
-          ["gitlab%.com"] = {
-            branch = "/-/tree/{branch}",
-            file = "/-/blob/{branch}/{file}#L{line_start}-L{line_end}",
-            commit = "/-/commit/{commit}",
+          url_patterns = {
+            ["github%.com"] = {
+              branch = "/tree/{branch}",
+              file = "/blob/{branch}/{file}#L{line_start}-L{line_end}",
+              commit = "/commit/{commit}",
+            },
+            ["gitlab%.com"] = {
+              branch = "/-/tree/{branch}",
+              file = "/-/blob/{branch}/{file}#L{line_start}-L{line_end}",
+              commit = "/-/commit/{commit}",
+            },
+            ["bitbucket%.org"] = {
+              branch = "/src/{branch}",
+              file = "/src/{branch}/{file}#lines-{line_start}-L{line_end}",
+              commit = "/commits/{commit}",
+            },
           },
-          ["bitbucket%.org"] = {
-            branch = "/src/{branch}",
-            file = "/src/{branch}/{file}#lines-{line_start}-L{line_end}",
-            commit = "/commits/{commit}",
-          },
-        },
-      },
-    },
+        }
+      })
+    end,
     config = function(_, opts)
       vim.keymap.set("n", "<leader>go", function()
         require("lazy.core.loader").load({ "snacks-gitbrowse" })
