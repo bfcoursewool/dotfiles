@@ -18,8 +18,14 @@ vim.keymap.set('n', '<C-k>', function() ui.nav_file(3) end)
 vim.keymap.set('n', '<C-l>', function() ui.nav_file(4) end)
 
 -- Lazygit via Snacks.nvim is the future of nvim git integration.
-vim.keymap.set("n", "<leader>gs", function() Snacks.lazygit() end)
-vim.keymap.set("n", "<leader>gb", function() Snacks.git.blame_line() end)
+vim.keymap.set("n", "<leader>gs", function() 
+  local snacks = require("snacks")
+  snacks.lazygit()
+end)
+vim.keymap.set("n", "<leader>gb", function() 
+  local snacks = require("snacks")
+  snacks.git.blame_line()
+end)
 --vim.keymap.set("n", "<leader>go", function() Snacks.gitbrowse() end)
 
 -- toggle undotree
@@ -27,7 +33,8 @@ vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle)
 
 -- Navigate to dashboard with the quickness...
 vim.keymap.set('n', '<leader>d', function()
-  Snacks.dashboard()
+  local snacks = require('snacks')
+  snacks.dashboard()
 end)
 
 -- A little finder to select NerdFont icons

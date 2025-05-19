@@ -116,6 +116,73 @@ function configure_treesitter_textobjects()
     { silent = true, desc = "repeat TS move backward + zz" })
 end
 
+local snacks_opts = {
+  -- Dashboard stuff... shortcut functions, recent projects, recent files, open PRs
+  dashboard = {
+    lazy = false,
+    width = 100,
+    sections = {
+      {
+        section = 'terminal',
+        align = 'center',
+        cmd = '~/.config/nvim/animate-rainbow-header.sh ~/.config/nvim/assets/ascii-wolfy-thrack.txt',
+        height = 30,
+        width = 100,
+        padding = 1,
+      },
+      {
+        align = 'center',
+        padding = 1,
+        text = {
+          { '  Update[u] ', hl = 'Label' },
+          { '  Files[f] ', hl = 'DiagnosticInfo' },
+          { '  Apps[a] ', hl = 'DiagnosticInfo' },
+          { '  Dotfiles[d] ', hl = 'DiagnosticInfo' },
+          { '  Check Health[h] ', hl = '@property' },
+          { '  Last Session[l] ', hl = 'Number' },
+          { '  Quit NeoVim[q] ', hl = '@string' },
+        },
+      },
+      { section = 'startup', padding = 1 },
+      { icon = '󰏓 ', title = 'Projects', limit=5, section = 'projects', indent = 2, padding = 1 },
+      { icon = ' ', title = 'Recent Files', limit=8, section = 'recent_files', indent = 2, padding = 1 },
+      function()
+        local snacks = require("snacks")
+        local in_git = snacks.git.get_root() ~= nil
+        local cmds = {
+          {
+            icon = " ",
+            title = "Open PRs",
+            cmd = "gh pr list -L 3",
+            height = 7,
+          },
+        }
+        return vim.tbl_map(function(cmd)
+          return vim.tbl_extend("force", {
+            section = "terminal",
+            enabled = in_git,
+            align='center',
+            indent = 2,
+            padding = 1,
+            ttl = 5 * 60,
+          }, cmd)
+        end, cmds)
+      end,
+      { text = '', action = ':Lazy update', key = 'u' },
+      { text = '', action = ':Telescope find_files', key = 'f' },
+      { text = '', action = ':Telescope builtin', key = 'a' },
+      { text = '', action = ':TelescopeDotfiles', key = 'd' },
+      { text = '', action = ':checkhealth', key = 'h' },
+      { text = '', action = ':SessionRestore', key = 'l' },
+      { text = '', action = ':qa', key = 'q' },
+    },
+  },
+  -- disable heavy parts for now
+  notifier = false,
+  lazygit  = false,
+  gitbrowse = false,
+}
+
 require('lazy').setup({
   checker = {
     enabled = true
@@ -132,95 +199,35 @@ require('lazy').setup({
   -- Snacks is a snazzy new set of plugins from folke. This sets up a sick dashboard.
   {
     "folke/snacks.nvim",
-    name  = "snacks-dashboard",          -- give each spec a unique name
     event = "UIEnter",                   -- very first moment a screen exists
+    lazy = false,
     dependencies = {            -- ⬅️  make sure Nui is there first
       { "MunifTanjim/nui.nvim", lazy = false },
     },
     version = false,                     -- track main branch
-    opts = {
-      -- Dashboard stuff... shortcut functions, recent projects, recent files, open PRs
-      dashboard = {
-        lazy = false,
-        width = 100,
-        sections = {
-          {
-            section = 'terminal',
-            align = 'center',
-            cmd = '~/.config/nvim/animate-rainbow-header.sh ~/.config/nvim/assets/ascii-wolfy-thrack.txt',
-            height = 30,
-            width = 100,
-            padding = 1,
-          },
-          {
-            align = 'center',
-            padding = 1,
-            text = {
-              { '  Update[u] ', hl = 'Label' },
-              { '  Files[f] ', hl = 'DiagnosticInfo' },
-              { '  Apps[a] ', hl = 'DiagnosticInfo' },
-              { '  Dotfiles[d] ', hl = 'DiagnosticInfo' },
-              { '  Check Health[h] ', hl = '@property' },
-              { '  Last Session[l] ', hl = 'Number' },
-              { '  Quit NeoVim[q] ', hl = '@string' },
-            },
-          },
-          { section = 'startup', padding = 1 },
-          { icon = '󰏓 ', title = 'Projects', limit=5, section = 'projects', indent = 2, padding = 1 },
-          { icon = ' ', title = 'Recent Files', limit=8, section = 'recent_files', indent = 2, padding = 1 },
-          function()
-            local in_git = Snacks.git.get_root() ~= nil
-            local cmds = {
-              {
-                icon = " ",
-                title = "Open PRs",
-                cmd = "gh pr list -L 3",
-                height = 7,
-              },
-            }
-            return vim.tbl_map(function(cmd)
-              return vim.tbl_extend("force", {
-                section = "terminal",
-                enabled = in_git,
-                align='center',
-                indent = 2,
-                padding = 1,
-                ttl = 5 * 60,
-              }, cmd)
-            end, cmds)
-          end,
-          { text = '', action = ':Lazy update', key = 'u' },
-          { text = '', action = ':Telescope find_files', key = 'f' },
-          { text = '', action = ':Telescope builtin', key = 'a' },
-          { text = '', action = ':TelescopeDotfiles', key = 'd' },
-          { text = '', action = ':checkhealth', key = 'h' },
-          { text = '', action = ':SessionRestore', key = 'l' },
-          { text = '', action = ':qa', key = 'q' },
-        },
-      },
-      -- disable heavy parts for now
-      notifier = false,
-      lazygit  = false,
-      gitbrowse = false,
-    },
+    opts = snacks_opts,
     config = function(_, opts)
+      -- Apply options once
       local snacks = require("snacks")
-      snacks.setup(opts)                 -- apply the options
-
-      -- open the dashboard if Neovim started with no file arguments
+      snacks.setup(opts)
+      -- Open dashboard only if NVim started with no file args
       if vim.fn.argc() == 0 then
-        vim.schedule(function() snacks.dashboard() end)
+        vim.api.nvim_create_autocmd("VimEnter", {
+          once = true,
+          callback = function() snacks.dashboard() end,
+        })
       end
     end,
   },
 
   {
     "folke/snacks.nvim",
-    name = "snacks-notifier",
     lazy = true,
-    opts = function(_, old_opts)
-      return vim.tbl_deep_extend("force", old_opts, {
-        notifier = {
+    init = function()
+      -- monkey‑patch vim.notify so *first* notice pulls in the module
+      local lazy_notify = function(...)
+        snacks_opts.notify = { enabled = true }
+        snacks_opts.notifier = {
           timeout = 3000, -- default timeout in ms
           width = { min = 40, max = 0.4 },
           height = { min = 1, max = 0.6 },
@@ -251,13 +258,7 @@ require('lazy').setup({
           ---@type string|boolean
           more_format = " ↓ %d lines ",
           refresh = 50, -- refresh at most every 50ms
-        },
-        notify = { enabled = true },
-      })
-    end,
-    init = function()
-      -- monkey‑patch vim.notify so *first* notice pulls in the module
-      local lazy_notify = function(...)
+        }
         require("lazy.core.loader").load({ "snacks-notifier" })
         return vim.notify(...)
       end
@@ -267,11 +268,11 @@ require('lazy').setup({
 
   {
     "folke/snacks.nvim",
-    name = "snacks-lazygit",
+    lazy = true,
     cmd  = "LazyGitFloat",               -- create a user command
-    opts = function(_, old_opts)
-      return vim.tbl_deep_extend("force", old_opts, {
-        lazygit = {
+    init = function()
+      vim.api.nvim_create_user_command("LazyGitFloat", function()
+        snacks_opts.lazygit = {
           configure = true,
           -- extra configuration for lazygit that will be merged with the default
           -- snacks does NOT have a full yaml parser, so if you need `"test"` to appear with the quotes
@@ -301,12 +302,6 @@ require('lazy').setup({
             style = "lazygit",
           },
         }
-      })
-    end,
-    config = function(_, opts)
-      vim.api.nvim_create_user_command("LazyGitFloat", function()
-        -- real load happens the first time you run the command
-        require("lazy.core.loader").load({ "snacks-lazygit" })
         require("snacks").lazygit.toggle()
       end, {})
     end,
@@ -314,11 +309,11 @@ require('lazy').setup({
 
   {
     "folke/snacks.nvim",
-    name = "snacks-gitbrowse",
+    lazy = true,
     keys = { { "<leader>go", desc = "Open repo in browser" } },
-    opts = function(_, old_opts)
-      return vim.tbl_deep_extend("force", old_opts, {
-        gitbrowse = {
+    init = function()
+      vim.keymap.set("n", "<leader>go", function()
+        snacks_opts.gitbrowse = {
           ---@class snacks.gitbrowse.Config
           ---@field url_patterns? table<string, table<string, string|fun(fields:snacks.gitbrowse.Fields):string>>
           notify = true, -- show notification on open
@@ -369,11 +364,6 @@ require('lazy').setup({
             },
           },
         }
-      })
-    end,
-    config = function(_, opts)
-      vim.keymap.set("n", "<leader>go", function()
-        require("lazy.core.loader").load({ "snacks-gitbrowse" })
         require("snacks").gitbrowse()
       end)
     end,
